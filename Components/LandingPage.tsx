@@ -1,6 +1,9 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react';
-import { Menu, X, ChevronRight, Shield, Clock, Hospital, Users, Calendar, Database, Lock, Globe, Cpu, Wallet, FileCheck, Network, ArrowRight, CheckCircle2, ServerCrash, Blocks, Stethoscope, Award, Heart, BookOpen, Search, Bell } from 'lucide-react';
+import { Menu, X, ChevronRight, Shield, Hospital, Users, Calendar, Database, Lock, Globe, Cpu, Wallet, FileCheck, Network, ArrowRight, CheckCircle2, Stethoscope, Award, Heart, BookOpen, Search, Bell, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+
 
 interface NavDropdownProps {
   title: string;
@@ -18,12 +21,73 @@ interface Stat {
   suffix: string;
 }
 
+const NavDropdown: React.FC<NavDropdownProps> = ({ title, items }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center space-x-1 px-4 py-2 rounded-lg transition-all duration-300
+                 hover:bg-white/10 text-gray-300 hover:text-white"
+      >
+        <span>{title}</span>
+        <ChevronDown className={`w-4 h-4 transform transition-transform duration-300 
+                              ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-64 rounded-xl
+                     bg-[#0B1437] border border-white/10 shadow-xl z-50
+                     transform transition-all duration-200 origin-top-left">
+          <div className="p-2">
+            {items.map((item, index) => (
+              <a 
+                key={index} 
+                href={`#${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 
+                         transition-colors duration-200 group"
+                onClick={() => setIsOpen(false)}
+              >
+                {item.icon && (
+                  <div className="text-[#00B4D8] group-hover:text-[#4CC9F0] 
+                              transition-colors duration-200">
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-medium text-white group-hover:text-[#4CC9F0] 
+                              transition-colors duration-200">
+                    {item.label}
+                  </div>
+                  <div className="text-sm text-gray-400">{item.description}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('patients');
-  const [scrollY, setScrollY] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
-  const [networkStatus, setNetworkStatus] = useState('connected');
+  const [networkStatus, setNetworkStatus] = useState<'connected' | 'syncing' | 'disconnected'>('connected');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<Stat[]>([
@@ -33,57 +97,37 @@ const LandingPage = () => {
     { value: 0, target: 99.9, label: 'Uptime', suffix: '%' }
   ]);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
-
-  // Scroll animation effect
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const [styless, setStyless] = useState({left: "50%", top: "50%", animationDelay: "10s", transform: "", transition: ''})
 
   // Simulated blockchain connection status
   const connectWallet = () => {
     setIsConnected(true);
   };
 
-  const NavDropdown = ({ title, items }: NavDropdownProps) => (
-    <div className="relative group"
-         onMouseEnter={() => setActiveDropdown(title)}
-         onMouseLeave={() => setActiveDropdown(null)}>
-      <button className="flex items-center space-x-1 px-4 py-2 rounded-lg transition-all duration-300
-                         hover:bg-white/10 text-gray-300 hover:text-white">
-        <span>{title}</span>
-        <ChevronRight className={`w-4 h-4 transform transition-transform duration-300 
-                                ${activeDropdown === title ? 'rotate-90' : 'group-hover:rotate-90'}`} />
-      </button>
-      
-      <div className={`absolute top-full left-0 mt-2 w-64 p-3 rounded-xl transform transition-all duration-300 
-                    bg-gradient-to-br from-[#0B1437]/95 to-[#090B1E]/95 backdrop-blur-xl border border-white/10
-                    ${activeDropdown === title ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}
-                    shadow-2xl shadow-[#4361EE]/20`}>
-        {items.map((item, index) => (
-          <a key={index} href={`#${item.label.toLowerCase()}`} 
-             className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors duration-200">
-            {item.icon && <item.icon className="w-5 h-5 text-[#00B4D8]" />}
-            <div>
-              <div className="font-medium text-white">{item.label}</div>
-              <div className="text-sm text-gray-400">{item.description}</div>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
+  // Mobile navigation handler
+  const handleMobileNavClick = () => {
+    setIsMenuOpen(false);
+  };
 
   // Network status simulation
   useEffect(() => {
+    if (!isConnected) {
+      setNetworkStatus('disconnected');
+      console.log(networkStatus)
+      return;
+    }
+
     const interval = setInterval(() => {
-      setNetworkStatus(prev => prev === 'connected' ? 'syncing' : 'connected');
+      setNetworkStatus(prev => {
+        if (prev === 'connected') return 'syncing';
+        if (prev === 'syncing') return 'connected';
+        return 'connected';
+      });
     }, 5000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [networkStatus, isConnected]);
 
   // Animate stats on mount
   useEffect(() => {
@@ -106,7 +150,7 @@ const LandingPage = () => {
     });
 
     return () => intervals.forEach(interval => clearInterval(interval));
-  }, []);
+  }, [stats]); // Added stats as a dependency
 
   // Mouse parallax effect
   useEffect(() => {
@@ -124,24 +168,6 @@ const LandingPage = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const colors = {
-    primary: {
-      from: '#00B4D8', // Bright cyan
-      to: '#4361EE',   // Vibrant blue
-    },
-    secondary: {
-      from: '#4CC9F0', // Light cyan
-      to: '#7209B7',   // Deep purple
-    },
-    accent: {
-      from: '#48CAE4', // Soft cyan
-      to: '#023E8A',   // Deep blue
-    },
-    success: '#2EC4B6', // Teal
-    warning: '#FF9F1C', // Orange
-    error: '#E71D36',   // Red
-    highlight: '#F72585', // Pink
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -151,9 +177,95 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const newStyles = {
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`, 
+      animationDelay: `${Math.random() * 5}s`,
+      transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
+      transition: 'transform 0.3s ease-out',
+    };
+    setStyless(newStyles);
+  }, [mousePosition.x, mousePosition.y]);
+
+    {/* Update the mobile navigation section */}
+    {isMenuOpen && (
+      <div className="md:hidden fixed inset-0 bg-[#090B1E]/95 backdrop-blur-xl z-40">
+        <div className="h-full overflow-y-auto">
+          <div className="px-4 py-6 space-y-6">
+            {/* Mobile Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 
+                         focus:border-[#00B4D8]/50 focus:bg-white/10 transition-all 
+                         duration-300 focus:outline-none"
+              />
+              <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
+            </div>
+  
+            {/* Mobile Navigation Links */}
+            {[
+              {
+                title: 'Features',
+                items: [
+                  { label: "Patient Records", description: "Secure digital health records", icon: FileCheck },
+                  { label: "Analytics", description: "Healthcare insights & reporting", icon: Cpu },
+                  { label: "Security", description: "Advanced data protection", icon: Shield }
+                ]
+              },
+              {
+                title: 'Solutions',
+                items: [
+                  { label: "Hospitals", description: "Enterprise healthcare systems", icon: Hospital },
+                  { label: "Clinics", description: "Small practice management", icon: Users },
+                  { label: "Research", description: "Medical research platform", icon: Database }
+                ]
+              },
+              {
+                title: 'Resources',
+                items: [
+                  { label: "Documentation", description: "Integration guides & API docs", icon: BookOpen },
+                  { label: "Community", description: "Join our healthcare network", icon: Users },
+                  { label: "Support", description: "24/7 technical assistance", icon: Award }
+                ]
+              }
+            ].map((section) => (
+              <div key={section.title} className="space-y-4">
+                <div className="font-medium text-white px-2">{section.title}</div>
+                <div className="space-y-2">
+                  {section.items.map((item, index) => (
+                    <a
+                      key={index}
+                      href={`#${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      onClick={handleMobileNavClick}
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 
+                               transition-colors duration-200"
+                    >
+                      {item.icon && <item.icon className="w-5 h-5 text-[#00B4D8]" />}
+                      <div>
+                        <div className="font-medium text-white">{item.label}</div>
+                        <div className="text-sm text-gray-400">{item.description}</div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+  
+            {/* Mobile Connect Wallet */}
+            <button className="w-full px-4 py-3 bg-gradient-to-r from-[#00B4D8] to-[#4361EE] 
+                             rounded-lg text-white font-medium hover:opacity-90 transition-opacity">
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
   return (
     <div className="h-screen bg-gradient-to-b from-[#090B1E] via-[#0B1437] to-[#090B1E] text-white">
-
 
       <nav className={`fixed w-full z-50 transition-all duration-300 ${
         isScrolled ? 'py-2 bg-[#090B1E]/95 backdrop-blur-xl border-b border-white/10' : 'py-4 bg-transparent'
@@ -292,13 +404,7 @@ const LandingPage = () => {
             <div
               key={i}
               className="absolute animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
-                transition: 'transform 0.3s ease-out',
-              }}
+              style={styless}
             >
               <svg
                 className="w-12 h-12 opacity-[0.03]"
@@ -312,17 +418,6 @@ const LandingPage = () => {
             </div>
           ))}
 
-          {/* Glowing orbs */}
-          {/* <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-teal-500/30 rounded-full blur-3xl animate-pulse-slow"
-               style={{
-                 transform: `translate(${mousePosition.x * -30}px, ${mousePosition.y * -30}px)`,
-               }}
-          />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/30 rounded-full blur-3xl animate-pulse-slow"
-               style={{
-                 transform: `translate(${mousePosition.x * 30}px, ${mousePosition.y * 30}px)`,
-               }}
-          /> */}
 
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00B4D8]/30 rounded-full blur-3xl animate-pulse-slow" />
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#4361EE]/30 rounded-full blur-3xl animate-pulse-slow" />
@@ -410,8 +505,8 @@ const LandingPage = () => {
                                 overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-blue-500/10 opacity-0 
                                   group-hover:opacity-100 transition-opacity duration-300" />
-                    <img src="/api/placeholder/400/200" alt="Blockchain Visualization" 
-                         className="w-full h-full object-cover rounded-lg" />
+                    <Image src="/api/placeholder/400/200" alt="Blockchain Visualization" 
+                        width={600} height={100} className="w-full h-full object-cover rounded-lg" />
                   </div>
                 </div>
               </div>
@@ -610,7 +705,7 @@ const LandingPage = () => {
                 </button>
               </div>
               <div className="bg-gradient-to-br from-teal-500/10 to-blue-500/10 rounded-lg p-8">
-                <img src="/api/placeholder/400/300" alt="Ecosystem illustration" className="rounded-lg" />
+                <Image src="/api/placeholder/400/300" alt="Ecosystem illustration" width={600} height={100} className="rounded-lg" />
               </div>
             </div>
           </div>
@@ -748,7 +843,7 @@ const LandingPage = () => {
             </div>
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-[#00B4D8] to-[#4361EE] blur-3xl opacity-30" />
-              <img src="/api/placeholder/500/400" alt="Research visualization" className="relative rounded-lg" />
+              <Image src="/api/placeholder/500/400" alt="Research visualization" width={600} height={100} className="relative rounded-lg" />
             </div>
           </div>
         </div>
@@ -762,12 +857,17 @@ const LandingPage = () => {
             Be part of the movement to transform healthcare across Africa through blockchain technology.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
+          <Link href="https://health-trove.vercel.app" target="_blank" rel="noopener noreferrer">
             <button className="bg-gradient-to-r from-teal-500 to-blue-500 px-8 py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity">
               Launch App
             </button>
+          </Link>
+
+          <Link href="https://health-trove.gitbook.io/health-trove-docs" target="_blank" rel="noopener noreferrer">
             <button className="border border-teal-500/30 px-8 py-4 rounded-lg font-semibold hover:bg-teal-900/30 transition-colors">
               Read Docs
             </button>
+          </Link>
           </div>
         </div>
       </div>
